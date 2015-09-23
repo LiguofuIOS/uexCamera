@@ -59,7 +59,41 @@
             }
         }
     }
-	[self showCamera];
+    [self showCamera];
+}
+
+//新加方法
+- (void)openBandIconInternal:(NSMutableArray *)inArguments {
+    NSLog(@"lgf--EUExCamera--openBandIconInternal = %@",inArguments);
+    isCompress = NO;
+    if ([inArguments isKindOfClass:[NSMutableArray class]] && [inArguments count] > 0) {
+        self.imagePath = [self absPath:[inArguments objectAtIndex:0]];
+        NSString * compress = nil;
+        if (inArguments.count >1) {
+            compress = [inArguments objectAtIndex:1];
+        }
+        if ([compress isKindOfClass:[NSString class]] && compress.length > 0) {
+            if (0 == [compress intValue]) {
+                isCompress = YES;
+                if ([inArguments count] >2) {
+                    NSString * scaleStr = [inArguments objectAtIndex:2];
+                    if ([scaleStr isKindOfClass:[NSString class]] && scaleStr.length>0) {
+                        scale = [scaleStr floatValue]/100;
+                        if (scale > 100) {
+                            scale = 0.5;
+                        } else if(scale < 0){
+                            scale = 0.5;
+                        }
+                    } else {
+                        scale = 0.5;
+                    }
+                } else {
+                    scale = 0.5;
+                }
+            }
+        }
+    }
+    [self showCamera];
 }
 
 -(void)showCamera {
@@ -68,14 +102,24 @@
     } else {
         UIImagePickerController * imagePickerController = [[UIImagePickerController alloc] init];
         [imagePickerController setDelegate:self];
-        //        [imagePickerController setAllowsEditing:YES];
+        NSLog(@"lgf--EUExCamera--openBandIconInternal--self.imagePath= %@",self.imagePath);
+        UIImage *btnImg = [UIImage imageWithData:[self getImageDataByPath:self.imagePath]];
+        if (btnImg) {
+            NSLog(@"lgf--EUExCamera--openBandIconInternal--btnImg存在");
+            UIButton *cameraBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+            cameraBtn.frame = CGRectMake(15, 100,CGRectGetWidth(imagePickerController.view.frame)-30, CGRectGetWidth(imagePickerController.view.frame)-30);
+            [cameraBtn addTarget:self action:@selector(cameraBtnClick:) forControlEvents:UIControlEventTouchUpInside];
+            [cameraBtn setBackgroundImage:btnImg forState:UIControlStateNormal];
+            [imagePickerController.view addSubview:cameraBtn];
+        }
+        
         [imagePickerController setSourceType:UIImagePickerControllerSourceTypeCamera];
         [imagePickerController setVideoQuality:UIImagePickerControllerQualityTypeMedium];
-		if ([[[UIDevice currentDevice] systemVersion] floatValue] >= 6.0) {
-			[EUtility brwView:meBrwView presentModalViewController:imagePickerController animated:YES];
-		} else {
-			[EUtility brwView:meBrwView navigationPresentModalViewController:imagePickerController animated:YES];
-		}
+        if ([[[UIDevice currentDevice] systemVersion] floatValue] >= 6.0) {
+            [EUtility brwView:meBrwView presentModalViewController:imagePickerController animated:YES];
+        } else {
+            [EUtility brwView:meBrwView navigationPresentModalViewController:imagePickerController animated:YES];
+        }
         if (IsIOS6OrLower) {
             
         } else {
@@ -86,12 +130,16 @@
     }
 }
 
+- (void)cameraBtnClick:(id)sender {
+    [sender removeFromSuperview];
+}
 #pragma mark -
 #pragma mark - CallBack
 
 -(void)uexSuccessWithOpId:(int)inOpId dataType:(int)inDataType data:(NSString *)inData {
 	if (inData) {
-		[self jsSuccessWithName:@"uexCamera.cbOpen" opId:inOpId dataType:inDataType strData:inData];
+        [self jsSuccessWithName:@"uexCamera.cbOpen" opId:inOpId dataType:inDataType strData:inData];
+        [self jsSuccessWithName:@"uexCamera.cbOpenInternal" opId:inOpId dataType:inDataType strData:inData];
 	}
 }
 
@@ -259,4 +307,15 @@
 	}
 }
 
+-(NSData *)getImageDataByPath:(NSString *)imagePath {
+    NSData *imageData = nil;
+    if ([imagePath hasPrefix:@"http://"]) {
+        NSURL *imagePathURL = [NSURL URLWithString:imagePath];
+        imageData = [NSData dataWithContentsOfURL:imagePathURL];
+        
+    } else {
+        imageData = [NSData dataWithContentsOfFile:imagePath];
+    }
+    return imageData;
+}
 @end

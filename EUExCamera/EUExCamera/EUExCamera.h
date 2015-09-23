@@ -12,5 +12,6 @@
     float scale;//缩放比例
 }
 
+@property (nonatomic, retain) NSString *imagePath;
 -(void)uexSuccessWithOpId:(int)inOpId dataType:(int)inDataType data:(NSString *)inData;
 @end
